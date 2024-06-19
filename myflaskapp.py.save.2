@@ -1,0 +1,66 @@
+from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://ipuser:qwe123@localhost/iptable'
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+class IPTable(db.Model):
+    __tablename__ = 'iptable'
+    id = db.Column(db.Integer, primary_key=True)
+    gateway = db.Column(db.String(255))
+    ip = db.Column(db.String(255))
+    host = db.Column(db.String(255))
+    part = db.Column(db.String(255))
+    name = db.Column(db.String(255))
+    place = db.Column(db.String(255))
+    phone = db.Column(db.String(255))
+    etcs = db.Column(db.String(255))
+    date = db.Column(db.String(255))  
+    class_ = db.Column(db.String(255), name='class')
+    num = db.Column(db.String(255))
+
+@app.route('/')
+def index():
+    ips = IPTable.query.all()
+    return render_template('index.html', ips=ips)
+
+@app.route('/add', methods=['POST'])
+def add():
+    new_ip = IPTable(
+        gateway=request.form['gateway'],
+        ip=request.form['ip'],
+        host=request.form['host'],
+        part=request.form['part'],
+        name=request.form['name'],
+        place=request.form['place'],
+        phone=request.form['phone'],
+        etcs=request.form['etcs'],
+        date=request.form['date'],
+        class_=request.form['class'],
+        num=request.form['num']
+    )
+    db.session.add(new_ip)
+    db.session.commit()
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
+
+LOAD DATA INFILE '/home/infra/Desktop/myflaskapp/numbers.csv'
+INTO TABLE iptable
+CHARACTER SET utf8
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES
+(gateway, ip, host, part, name, place, phone, etcs, date, class, num);LOAD DATA INFILE '/home/infra/Desktop/myflaskapp/numbers.csv'
+INTO TABLE iptable
+CHARACTER SET utf8
+FIELDS TERMINATED BY ','
+ENCLOSED BY '"'
+LINES TERMINATED BY '\n'
+IGNORE 1 LINES
+(gateway, ip, host, part, name, place, phone, etcs, date, class, num);
