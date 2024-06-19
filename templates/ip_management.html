@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IP Address Management</title>
+    <style>
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        /* Table styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black with opacity */
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; /* 10% from the top and centered */
+            padding: 10px;
+            border: 1px solid #888;
+            width: 80%; /* Modal width */
+            max-width: 600px;
+            border-radius: 10px;
+        }
+
+        .modal-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px; /* Adjusted margin */
+        }
+
+        .modal-content th,
+        .modal-content td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Form input styling */
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-input {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        /* Button styling */
+        .form-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .form-button:hover {
+            background-color: #45a049;
+        }
+
+        /* Message box styling */
+        #message {
+            display: none;
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #d4edda;
+            background-color: #d4edda;
+            color: #155724;
+            border-radius: 4px;
+        }
+
+        /* Positioning for top right buttons */
+        .top-right-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        /* Pagination styling */
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .pagination a {
+            display: inline-block;
+            padding: 8px 16px;
+            text-decoration: none;
+            color: black;
+            border: 1px solid #ddd;
+            margin: 0 4px;
+        }
+
+        .pagination strong {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: 1px solid #4CAF50;
+            margin: 0 4px;
+        }
+
+        /* Bulk Delete button */
+        .bulk-delete {
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+    <script>
+        // JavaScript functions for editing cells, deleting IPs, and handling modals
+
+        // Function to enable cell editing
+        function editCell(cell) {
+            var currentText = cell.innerText;
+            cell.innerHTML = '<input type="text" value="' + currentText + '" onblur="saveCell(this, ' + cell.getAttribute('data-id') + ', \'' + cell.getAttribute('data-field') + '\')">';
+            cell.firstElementChild.focus();
+        }
+
+        // Function to save edited cell content
+        function saveCell(input, id, field) {
+            var newValue = input.value;
+            var cell = input.parentElement;
+            cell.innerHTML = newValue;
+
+            // Send POST request to update database
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/edit/" + id, true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.send(field + "=" + newValue);
+        }
+
+function confirmDelete(id) {
+    if (confirm('Are you sure you want to delete this IP address?')) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/delete/" + id, true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+        // Include CSRF token in the request headers
+        var csrf_token = document.querySelector('input[name="csrf_token"]').value;
+        xhr.setRequestHeader("X-CSRFToken", csrf_token);
+        
+        // Handle response
+        xhr.onload = function () {
+            console.log("Response received:", xhr.status, xhr.responseText);
+            if (xhr.status === 204) {
+                // If deletion successful, remove row and show message
+                document.getElementById('row-' + id).remove();
+                showMessage('IP address successfully deleted.');
+            } else {
+                // If deletion fails, alert user
+                alert('Failed to delete the IP address.');
+            }
+        };
+        
+        // Handle network errors
+        xhr.onerror = function () {
+            alert('Network error occurred. Failed to delete the IP address.');
+        };
+
+        xhr.send();
+    }
+}
+
+        // Function to perform bulk deletion
+        function bulkDelete() {
+            var checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            var ids = [];
+
+            checkboxes.forEach(function(checkbox) {
+                ids.push(checkbox.value);
+            });
+
+            if (ids.length > 0 && confirm('Are you sure you want to delete ' + ids.length + ' IP addresses?')) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/bulk_delete", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                // Include CSRF token in the request headers
+                var csrf_token = document.querySelector('input[name="csrf_token"]').value;
+                xhr.setRequestHeader("X-CSRFToken", csrf_token);
+
+                // Handle response
+                xhr.onload = function () {
+                    if (xhr.status === 204) {
+                        // If deletion successful, remove rows and show message
+                        ids.forEach(function(id) {
+                            document.getElementById('row-' + id).remove();
+                        });
+                        showMessage(ids.length + ' IP addresses successfully deleted.');
+                    } else {
+                        // If deletion fails, alert user
+                        alert('Failed to delete the IP addresses.');
+                    }
+                };
+
+                // Send JSON data with IDs to delete
+                xhr.send(JSON.stringify({ ids: ids }));
+            }
+        }
+
+        // Function to show temporary message box
+        function showMessage(message) {
+            var messageBox = document.getElementById('message');
+            messageBox.innerText = message;
+            messageBox.style.display = 'block';
+            setTimeout(function() {
+                messageBox.style.display = 'none';
+            }, 3000);
+        }
+
+        // Function to toggle modal display
+        function toggleModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'block';
+        }
+
+        // Function to close modal
+        function closeModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'none';
+        }
+
+        // Function to show success message after adding IP address
+        window.onload = function() {
+            if (window.location.hash === '#add-success') {
+                showMessage('IP address successfully added.');
+            }
+        };
+
+        // Function to handle file upload
+        function handleFileUpload(event) {
+            var fileInput = event.target.files[0];
+            var formData = new FormData();
+            formData.append('file', fileInput);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/import_csv', true);
+            xhr.onload = function () {
+                if (xhr.status === 200) {
+                    showMessage('CSV file imported successfully.');
+                    window.location.reload();  // Refresh page after successful import
+                } else {
+                    alert('Failed to import CSV file.');
+                }
+            };
+            xhr.send(formData);
+        }
+
+        // Function to rollback import operation
+        function rollbackImport() {
+            if (confirm('Are you sure you want to rollback the last import operation?')) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "/rollback_import", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+
+                // Include CSRF token in the request headers
+                var csrf_token = document.querySelector('input[name="csrf_token"]').value;
+                xhr.setRequestHeader("X-CSRFToken", csrf_token);
+
+                // Handle response
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        showMessage('Imported data rollback successful.');
+                        window.location.reload();  // Refresh page after rollback
+                    } else {
+                        alert('Failed to rollback imported data.');
+                    }
+                               // Send rollback request
+                xhr.send();
+            }
+        }
+    }
+        // Function to show success message after adding IP address
+        window.onload = function() {
+            if (window.location.hash === '#add-success') {
+                showMessage('IP address successfully added.');
+                var element = document.getElementById('add-success');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        };
+
+        // Function to handle modal behavior (open/close)
+        function toggleModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'block';
+        }
+
+        // Function to close modal
+        function closeModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'none';
+        }
+    </script>
+</head>
+<body>
+    <h1>IP Address Management</h1>
+
+    <!-- Message box for success or error messages -->
+    <div id="message"></div>
+
+    <!-- Buttons in top right corner -->
+    <div class="top-right-buttons">
+        <!-- Button to add IP address (opens modal) -->
+        <button class="form-button" onclick="toggleModal()">Add IP Address</button>
+        <!-- File Upload button -->
+        <label class="form-button">
+            File Upload
+            <input type="file" style="display:none;" onchange="handleFileUpload(event)">
+        </label>
+        <!-- Rollback button -->
+        <button class="form-button" onclick="rollbackImport()">Rollback</button>
+        <!-- Bulk Delete button -->
+        <button class="form-button bulk-delete" onclick="bulkDelete()">Bulk Delete</button>
+    </div>
+
+<!-- Search form -->
+<form action="{{ url_for('search') }}" method="POST">
+    <!-- CSRF token for security -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="query">Search:</label>
+    <input type="text" id="query" name="query">
+    <button type="submit">Search</button>
+</form>
+    <!-- Table displaying IP addresses -->
+    <table>
+        <thead>
+            <!-- Table headers -->
+            <tr>
+                <th>ID</th>
+                <th>Class</th>
+                <th>Gateway</th>
+                <th>IP Address</th>
+                <th>Host</th>
+                <th>Part</th>
+                <th>Name</th>
+                <th>Place</th>
+                <th>Phone</th>
+                <th>Etcs</th>
+                <th>Date</th>
+                <th>Num</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+<tbody>
+    {% for ip in ips %}
+        <!-- Rows for each IP address -->
+        <tr id="row-{{ ip.id }}">
+            <td>{{ ip.id }}</td>
+            <td data-id="{{ ip.id }}" data-field="Class_" onclick="editCell(this)">{{ ip.Class_ }}</td>
+            <td data-id="{{ ip.id }}" data-field="Gateway" onclick="editCell(this)">{{ ip.Gateway }}</td>
+            <td data-id="{{ ip.id }}" data-field="IPAddress" onclick="editCell(this)">{{ ip.IPAddress }}</td>
+            <td data-id="{{ ip.id }}" data-field="Host" onclick="editCell(this)">{{ ip.Host }}</td>
+            <td data-id="{{ ip.id }}" data-field="Part" onclick="editCell(this)">{{ ip.Part }}</td>
+            <td data-id="{{ ip.id }}" data-field="Name" onclick="editCell(this)">{{ ip.Name }}</td>
+            <td data-id="{{ ip.id }}" data-field="Place" onclick="editCell(this)">{{ ip.Place }}</td>
+            <td data-id="{{ ip.id }}" data-field="Phone" onclick="editCell(this)">{{ ip.Phone }}</td>
+            <td data-id="{{ ip.id }}" data-field="Etcs" onclick="editCell(this)">{{ ip.Etcs }}</td>
+            <td data-id="{{ ip.id }}" data-field="Date" onclick="editCell(this)">{{ ip.Date }}</td>
+            <td data-id="{{ ip.id }}" data-field="Num" onclick="editCell(this)">{{ ip.Num }}</td>
+            <td>
+                <!-- Action buttons (Delete) -->
+                <a href="#" onclick="confirmDelete('{{ ip.id }}')">Delete</a>
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>
+    </table>
+    
+    <!-- Pagination links -->
+    <div class="pagination">
+        {% if pagination %}
+            {% for page_num in range(1, pagination.pages + 1) %}
+                {% if pagination.page == page_num %}
+                    <strong>{{ page_num }}</strong>
+                {% else %}
+                    <a href="{{ url_for('ip_management', page=page_num) }}">{{ page_num }}</a>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+
+<!-- Modal for adding IP address -->
+    <div id="myModal" class="modal">
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>Add IP Address</h2>
+            <form method="POST" action="/add">
+                <!-- CSRF token for security -->
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <!-- Input fields for adding IP address details -->
+                <div class="form-group">
+                    <label for="Class_" class="form-label">Class:</label>
+                    <input type="text" id="Class_" name="Class_" class="form-input">
+                </div>
+
+                <div class="form-group">
+                    <label for="Gateway" class="form-label">Gateway:</label>
+                    <input type="text" id="Gateway" name="Gateway" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="IPAddress" class="form-label">IP Address:</label>
+                    <input type="text" id="IPAddress" name="IPAddress" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Host" class="form-label">Host:</label>
+                    <input type="text" id="Host" name="Host" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Part" class="form-label">Part:</label>
+                    <input type="text" id="Part" name="Part" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Name" class="form-label">Name:</label>
+                    <input type="text" id="Name" name="Name" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Place" class="form-label">Place:</label>
+                    <input type="text" id="Place" name="Place" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Phone" class="form-label">Phone:</label>
+                    <input type="text" id="Phone" name="Phone" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Etcs" class="form-label">Etcs:</label>
+                    <input type="text" id="Etcs" name="Etcs" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Date" class="form-label">Date:</label>
+                    <input type="text" id="Date" name="Date" class="form-input">
+                </div>
+                
+                <div class="form-group">
+                    <label for="Num" class="form-label">Num:</label>
+                    <input type="text" id="Num" name="Num" class="form-input">
+                </div>
+                
+                <!-- Submit button to add IP address -->
+                <button type="submit" class="form-button">Add IP Address</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Links to navigate back to dashboard or logout -->
+    <p><a href="{{ url_for('dashboard') }}">Back to Dashboard</a></p>
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+
+    <!-- JavaScript to handle modal behavior (open/close) -->
+    <script>
+        // Function to show success message after adding IP address
+        window.onload = function() {
+            if (window.location.hash === '#add-success') {
+                showMessage('IP address successfully added.');
+                var element = document.getElementById('add-success');
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+        };
+
+        // Function to handle modal behavior (open/close)
+        function toggleModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'block';
+        }
+
+        // Function to close modal
+        function closeModal() {
+            var modal = document.getElementById('myModal');
+            modal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+

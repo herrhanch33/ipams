@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+    <h1>Dashboard</h1>
+    <ul>
+        <li><a href="{{ url_for('ip_management') }}">Manage IP Addresses</a></li>
+        <!-- Add more options here as needed -->
+        {% if can_register %}
+        <li><a href="{{ url_for('register') }}">Register</a></li>
+        {% endif %}
+    </ul>
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+</body>
+</html>

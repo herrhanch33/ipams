@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IP Address Management</title>
+    <script>
+        function editCell(cell){
+            var currentText = cell.innerText;
+            cell.innerHTML = '<input type="text" value= "' + currentText + '" onblur="saveCell(this, ' + cell.getAttribute('data-id') + ', \'' + cell.getAttribute('data-field') + '\')">';
+            cell.firstElementChild.focus();
+        }
+
+        function saveCell(input, id, field){
+            var newValue = input.value;
+            var cell = input.parentElement;
+            cell.innerHTML = newValue;
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/edit/" + id, true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.send(field + "=" + newValue);
+        }
+    </script>
+</head>
+<body>
+    <h1>IP Addresses</h1>
+    <!-- Add a form for search query -->
+    <form action="{{ url_for('search') }}" method="GET">
+        <label for="query">Search:</label>
+        <input type="text" id="query" name="query">
+        <button type="submit">Search</button>
+    </form>
+
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Gateway</th>
+            <th>IP</th>
+            <th>Host</th>
+            <th>Part</th>
+            <th>Name</th>
+            <th>Place</th>
+            <th>Phone</th>
+            <th>Etcs</th>
+            <th>Date</th>
+            <th>Class</th>
+            <th>Num</th>
+            <th>Actions</th>
+        </tr>
+        <tbody>
+        {% for ip in ips %}
+            <tr>
+                <td>{{ ip.id }}</td>
+                <td data-id="{{ ip.id }}" data-field="gateway" onclick="editCell(this)">{{ ip.gateway }}</td>
+                <td data-id="{{ ip.id }}" data-field="ip" onclick="editCell(this)">{{ ip.ip }}</td>
+                <td data-id="{{ ip.id }}" data-field="host" onclick="editCell(this)">{{ ip.host }}</td>
+                <td data-id="{{ ip.id }}" data-field="part" onclick="editCell(this)">{{ ip.part}}</td>
+                <td data-id="{{ ip.id }}" data-field="name" onclick="editCell(this)">{{ ip.name }}</td>
+                <td data-id="{{ ip.id }}" data-field="place" onclick="editCell(this)">{{ ip.place }}</td>
+                <td data-id="{{ ip.id }}" data-field="phone" onclick="editCell(this)">{{ ip.phone }}</td>
+                <td data-id="{{ ip.id }}" data-field="etcs" onclick="editCell(this)">{{ ip.etcs }}</td>
+                <td data-id="{{ ip.id }}" data-field="date" onclick="editCell(this)">{{ ip.date }}</td>
+                <td data-id="{{ ip.id }}" data-field="class" onclick="editCell(this)">{{ ip.class_ }}</td>
+                <td data-id="{{ ip.id }}" data-field="num" onclick="editCell(this)">{{ ip.num }}</td>
+                <td>
+                    <form action="{{ url_for('delete', id=ip.id) }}" method="POST">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div>
+        {% for page_num in range(1, pagination.pages + 1) %}
+            {% if pagination.page == page_num %}
+                <strong>{{ page_num }}</strong>
+            {% else %}
+                <a href="{{ url_for('index', page=page_num) }}">{{ page_num }}</a>
+            {% endif %}
+            &nbsp; <!-- Add spacing between page numbers -->
+        {% endfor %}
+    </div>
+
+    <h2>Add IP Address</h2>
+    <form method="POST" action="/add">
+        <table>
+            <tr>
+                <td><label for="gateway">Gateway:</label></td>
+                <td><input type="text" id="gateway" name="gateway"></td>
+            </tr>
+            <tr>
+                <td><label for="ip">IP:</label></td>
+                <td><input type="text" id="ip" name="ip"></td>
+            </tr>
+            <tr>
+                <td><label for="host">Host:</label></td>
+                <td><input type="text" id="host" name="host"></td>
+            </tr>
+            <tr>
+                <td><label for="part">Part:</label></td>
+                <td><input type="text" id="part" name="part"></td>
+            </tr>
+            <tr>
+                <td><label for="name">Name:</label></td>
+                <td><input type="text" id="name" name="name"></td>
+            </tr>
+            <tr>
+                <td><label for="place">Place:</label></td>
+                <td><input type="text" id="place" name="place"></td>
+            </tr>
+            <tr>
+                <td><label for="phone">Phone:</label></td>
+                <td><input type="text" id="phone" name="phone"></td>
+            </tr>
+            <tr>
+                <td><label for="etcs">Etcs:</label></td>
+                <td><input type="text" id="etcs" name="etcs"></td>
+            </tr>
+            <tr>
+                <td><label for="date">Date:</label></td>
+                <td><input type="text" id="date" name="date"></td>
+            </tr>
+            <tr>
+                <td><label for="class">Class:</label></td>
+                <td><input type="text" id="class_" name="class_"></td>
+            </tr>
+            <tr>
+                <td><label for="num">Num:</label></td>
+                <td><input type="text" id="num" name="num"></td>
+            </tr>
+        </table>
+        <input type="submit" value="Add">
+    </form>
+</body>
+</html>
