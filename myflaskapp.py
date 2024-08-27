@@ -80,8 +80,8 @@ class RegistrationForm(FlaskForm):
 @app.route('/register', methods=['GET', 'POST'])
 @login_required
 def register():
-    authorized_users = ['hguadmin', 'hch9133']
-    authorized_ips = ['172.31.20.21']
+    authorized_users = ['']
+    authorized_ips = ['']
 
     if current_user.username not in authorized_users or request.remote_addr not in authorized_ips:
         return "Access Denied. You are not authorized to access this page.", 403
