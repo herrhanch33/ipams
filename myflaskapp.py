@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 # Configuration settings for the Flask app
 app.config['SECRET_KEY'] = secrets.token_hex(16)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://ipuser:qwe123@localhost/iptable'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://example:example123@localhost/iptable'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize CSRF protection
@@ -125,8 +125,8 @@ def home():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    authorized_users = ['hguadmin', 'hch9133']
-    authorized_ips = ['172.31.20.21']
+    authorized_users = ['', '']
+    authorized_ips = ['']
     can_register = current_user.username in authorized_users or request.remote_addr in authorized_ips
     return render_template('dashboard.html', can_register=can_register)
 
