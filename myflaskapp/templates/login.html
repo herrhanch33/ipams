@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IP주소 관리</title>
+	<style>
+	body {
+		background-image: url('{{url_for('static', filename='HGU.png') }}');
+		background-size: 40%;
+		background-position: center 50%;
+		background-repeat: no-repeat;
+		height: 100vh;
+		margin: 0; 
+		}
+	/*h1 {
+		color: black;
+		text-align: left;
+		padding: 20px;
+	}*/
+	</style>
+</head>
+<body>
+    <h1>HGU IP주소 관리</h1>
+    <form method="POST" action="{{ url_for('login') }}">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.username.label }}<br>
+            {{ form.username(size=32) }}
+        </p>
+        <p>
+            {{ form.password.label }}<br>
+            {{ form.password(size=32) }}
+        </p>
+        <p>{{ form.submit() }}</p>
+	{% if error %}
+	<div style="color: red;">
+	{{  error }}
+	{% endif %}
+    </form>
+   
+</body>
+</html>
